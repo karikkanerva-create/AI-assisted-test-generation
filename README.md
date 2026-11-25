@@ -2,7 +2,7 @@
 
 This project automates QA Practice Hub's OTP login flow with Playwright and TypeScript. The tests cover successful login and OTP validation scenarios.
 
-## Requirements and setup
+## Requirements and setup.
 
 - Node.js
 - npm
