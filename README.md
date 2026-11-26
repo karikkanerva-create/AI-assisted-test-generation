@@ -42,64 +42,9 @@ Open the HTML report after a test run:
 npx playwright show-report
 ```
 
-## How the test was created
-
-### 1. Codegen recording
-
-Playwright Codegen can record browser interactions and generate a draft of the test code:
-
-```bash
-npx playwright codegen --target=playwright-test --test-id-attribute=data-testid https://qapracticehub.com/#otp-login
-```
-
-Codegen opens a browser and the code generator. Perform the login steps in the browser, and Playwright suggests corresponding locators and actions. The `--test-id-attribute=data-testid` option tells Codegen to use the page's `data-testid` attributes.
-
-Codegen output is a starting point, not a finished test. The recorded code was reviewed and organized to fit the project's needs.
-
-### 2. AI-assisted review and improvement
-
-AI was used to support test development:
-
-- explaining error messages and how Playwright locators work
-- accounting for the cookie banner and navigating to the OTP section
-- reading the OTP text from the popup and filling the six separate OTP fields
-- refactoring the Codegen draft into the Page Object Model
-
-AI suggestions were verified by running the tests. The final test does not print the OTP to the log.
-
-### 3. Page Object Model (POM)
-
-Page locators and actions are managed by the [OtpLoginPage](tests/pages/otp-login.page.ts) class. The test itself, [login-otp.spec.ts](tests/login-otp.spec.ts), describes the scenario and checks that login succeeds.
-
-`OtpLoginPage.fetchOtp()` waits for the popup to open and retrieves the six-digit code. `enterOtp()` fills the page's six fields one digit at a time. This keeps UI details in the page object and lets the test focus on verifying the login flow.
-
-## AI Test Case Generation
-
-In addition to successful login, the test suite covers negative and boundary cases. Expected messages and UI behavior were checked against the application before being added to the tests:
-
-| Scenario | Expected result |
-| --- | --- |
-| Username is missing | The Fetch OTP button is disabled. |
-| Only five OTP digits are entered | The form displays `Please enter all 6 OTP digits.` |
-| An incorrect six-digit OTP is entered | The form displays `Invalid OTP. Check the code and try again.` |
-| The fetched OTP is entered | Login succeeds, and the welcome message includes the username. |
-
-Example prompt used to brainstorm test cases:
-
-> Suggest positive, negative, and edge cases for OTP login. First provide the preconditions, test data, and expected result. Do not assume the wording of error messages; identify assumptions that need to be verified in the application.
-
-AI suggestions were not treated as ground truth: expected behavior was checked in the application, and the tests were run in Chromium. The incorrect OTP is created by first fetching the valid, dynamic OTP and then changing its last digit; the valid OTP is neither hardcoded nor printed to the log.
-
-## AI Test Data Generation
-
-The scenarios in `tests/login-otp.spec.ts` are stored as typed test data and run as independent Playwright tests. Discriminated unions describe the supported case types: an empty-username validation and OTP submissions using a valid, incorrect, or incomplete code. The incomplete case also specifies how many digits to enter.
-
-The OTP is fetched from the popup at runtime for every submission scenario. Test data derives the input from that value: it uses the fetched code unchanged for a successful login, changes the last digit for an incorrect code, or takes the configured number of leading digits for an incomplete code. This keeps the valid OTP dynamic while making the negative cases repeatable.
-
-The username is a stable practice-test value; no real user data or generated credentials are used. AI helped structure the scenario data, and the generated cases were reviewed and verified by running the tests.
-
 ## Prompt Engineering for QA
 
+Prompt engineering supports every stage below rather than being a one-time step.
 This project uses a two-step prompt workflow so test intent is reviewed before implementation:
 
 1. **Plan first; do not write code yet.** Ask AI to list assumptions, test data, and expected results. Each assumption must be labeled as verified or unverified. Unverified behavior must not be presented as fact.
@@ -138,6 +83,107 @@ The current tests use this reviewed plan:
 | Successful login | The OTP fetched from the popup at runtime | A success message welcomes `PlaywrightAITester`. |
 
 The current behavior and messages were observed in the practice application and verified by running the tests. Environment-specific assumptions, such as `URL_OTP_LOGIN` pointing to the intended practice page, should still be checked when running the suite in a different environment.
+
+## AI Test Case Generation
+
+In addition to successful login, the test suite covers negative and boundary cases. Expected messages and UI behavior were checked against the application before being added to the tests:
+
+| Scenario | Expected result |
+| --- | --- |
+| Username is missing | The Fetch OTP button is disabled. |
+| Only five OTP digits are entered | The form displays `Please enter all 6 OTP digits.` |
+| An incorrect six-digit OTP is entered | The form displays `Invalid OTP. Check the code and try again.` |
+| The fetched OTP is entered | Login succeeds, and the welcome message includes the username. |
+
+Example prompt used to brainstorm test cases:
+
+> Suggest positive, negative, and edge cases for OTP login. First provide the preconditions, test data, and expected result. Do not assume the wording of error messages; identify assumptions that need to be verified in the application.
+
+AI suggestions were not treated as ground truth: expected behavior was checked in the application, and the tests were run in Chromium. The incorrect OTP is created by first fetching the valid, dynamic OTP and then changing its last digit; the valid OTP is neither hardcoded nor printed to the log.
+
+## AI Test Data Generation
+
+The scenarios in `tests/login-otp.spec.ts` are stored as typed test data and run as independent Playwright tests. Discriminated unions describe the supported case types: an empty-username validation and OTP submissions using a valid, incorrect, or incomplete code. The incomplete case also specifies how many digits to enter.
+
+The OTP is fetched from the popup at runtime for every submission scenario. Test data derives the input from that value: it uses the fetched code unchanged for a successful login, changes the last digit for an incorrect code, or takes the configured number of leading digits for an incomplete code. This keeps the valid OTP dynamic while making the negative cases repeatable.
+
+The username is a stable practice-test value; no real user data or generated credentials are used. AI helped structure the scenario data, and the generated cases were reviewed and verified by running the tests.
+
+## AI Playwright Test Generation
+
+### 1. Codegen recording
+
+Playwright Codegen can record browser interactions and generate a draft of the test code:
+
+```bash
+npx playwright codegen --target=playwright-test --test-id-attribute=data-testid https://qapracticehub.com/#otp-login
+```
+
+Codegen opens a browser and the code generator. Perform the login steps in the browser, and Playwright suggests corresponding locators and actions. The `--test-id-attribute=data-testid` option tells Codegen to use the page's `data-testid` attributes.
+
+Codegen output is a starting point, not a finished test. The recorded code was reviewed and organized to fit the project's needs.
+
+### 2. AI-assisted review and improvement
+
+AI was used to support test development:
+
+- explaining error messages and how Playwright locators work
+- accounting for the cookie banner and navigating to the OTP section
+- reading the OTP text from the popup and filling the six separate OTP fields
+- refactoring the Codegen draft into the Page Object Model
+
+AI suggestions were verified by running the tests. The final test does not print the OTP to the log.
+
+### 3. Page Object Model (POM)
+
+Page locators and actions are managed by the [OtpLoginPage](tests/pages/otp-login.page.ts) class. The test itself, [login-otp.spec.ts](tests/login-otp.spec.ts), describes the scenario and checks that login succeeds.
+
+`OtpLoginPage.fetchOtp()` waits for the popup to open and retrieves the six-digit code. `enterOtp()` fills the page's six fields one digit at a time. This keeps UI details in the page object and lets the test focus on verifying the login flow.
+
+## AI Bug Analysis
+
+AI can help investigate a failing test, but a test failure is evidence of unexpected behavior, not proof of an application bug. Use the Playwright result and trace to identify what happened, then verify the proposed cause in the application.
+
+Run the OTP tests with a trace and HTML report:
+
+```bash
+npx playwright test tests/login-otp.spec.ts --project=chromium --workers=1 --trace on
+npx playwright show-report
+```
+
+In the report, open the failed test and inspect its error, steps, and trace. Share the relevant failure output, trace observations, and test code with AI. Traces can contain page content and test data; review and redact them before sharing. The OTP is dynamic and should not be copied into prompts.
+
+### Bug analysis prompt
+
+```text
+Analyze this Playwright test failure. Do not assume that a failing test proves
+there is an application bug.
+
+Test and expected behavior:
+[Paste the relevant test and expected result.]
+
+Observed failure:
+[Paste the error and actual result from the Playwright report.]
+
+Trace observations:
+[Describe the relevant UI state and actions from the trace. Include only
+redacted screenshots or details that are necessary.]
+
+Return:
+1. Verified facts, each tied to the supplied evidence.
+2. Plausible causes, labeled as hypotheses rather than facts.
+3. Whether the evidence points to an application defect, a test defect,
+   an environment issue, or is insufficient to decide.
+4. The smallest steps to reproduce and the next checks that would distinguish
+   the hypotheses.
+5. A concise bug report only if an application defect is supported by evidence;
+   otherwise, state what evidence is still needed.
+
+Do not invent application behavior, error messages, or root causes. Do not
+recommend changing the test's expected result just to make it pass.
+```
+
+For example, if the “rejects an incorrect OTP” test fails, first compare the submitted code and visible login message in the report and trace with the expected message in `tests/login-otp.spec.ts`. Do not conclude that OTP validation is broken until the trace confirms the application received the derived incorrect code and the observed result contradicts the verified expected behavior.
 
 ## Files
 
