@@ -192,8 +192,9 @@ For example, if the “rejects an incorrect OTP” test fails, first compare the
 - `tests/pages/otp-login.page.ts` – POM class containing OTP page locators and actions.
 
 ## Author
-Kari Kanerva
-Bachelor of Computer Science
-ISTQB Foundation Level Tester CTFL 4.0
-ISTQB Foundation Agile Tester
+
+Kari Kanerva<br>
+Bachelor of Computer Science<br>
+ISTQB Foundation Level Tester CTFL 4.0<br>
+ISTQB Foundation Agile Tester<br>
 email: kari.k.kanerva@gmail.com
