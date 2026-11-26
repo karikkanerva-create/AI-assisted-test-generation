@@ -190,3 +190,10 @@ For example, if the “rejects an incorrect OTP” test fails, first compare the
 - `playwright.config.ts` – Playwright browsers, test directory, and `data-testid` configuration.
 - `tests/login-otp.spec.ts` – typed OTP scenarios, data transformations, and validation tests.
 - `tests/pages/otp-login.page.ts` – POM class containing OTP page locators and actions.
+
+## Author
+Kari Kanerva
+Bachelor of Computer Science
+ISTQB Foundation Level Tester CTFL 4.0
+ISTQB Foundation Agile Tester
+email: kari.k.kanerva@gmail.com
