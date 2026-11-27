@@ -50,26 +50,7 @@ This project uses a two-step prompt workflow so test intent is reviewed before i
 1. **Plan first; do not write code yet.** Ask AI to list assumptions, test data, and expected results. Each assumption must be labeled as verified or unverified. Unverified behavior must not be presented as fact.
 2. **Review the plan, then implement.** Once the scenarios and expected behavior are agreed, ask AI to implement them using the existing `OtpLoginPage` page object.
 
-### Prompt template
-
-```text
-We are testing the QA Practice Hub OTP login flow in Playwright with TypeScript.
-The existing page object is tests/pages/otp-login.page.ts.
-
-Before writing or changing code, provide:
-1. Assumptions, clearly labeled as verified or unverified, and how to verify each unverified assumption.
-2. Typed test data for each scenario, identifying which values are static and which are generated at runtime.
-3. The expected result for each scenario, including the relevant UI state or message.
-
-Do not write code in this first response. Wait for me to review the plan.
-
-After I approve the plan, implement it with these constraints:
-- Reuse the existing OtpLoginPage; do not duplicate page locators or interactions in the spec.
-- Do not use waitForTimeout or other fixed delays. Prefer Playwright's auto-waiting locators and expect assertions.
-- Fetch a valid OTP at runtime. Never hardcode or log the OTP.
-- Derive invalid or incomplete OTP test data from the fetched OTP.
-- Preserve the existing test structure and make only changes required by the approved scenarios.
-```
+Reusable prompts are kept in [`prompts/`](prompts/). Start with [requirement analysis](prompts/requirement-analysis.md), then generate test cases and Playwright tests from the reviewed requirements. Each prompt is a separate step; review its output before moving on.
 
 ### Applied to the current OTP scenarios
 
@@ -95,9 +76,7 @@ In addition to successful login, the test suite covers negative and boundary cas
 | An incorrect six-digit OTP is entered | The form displays `Invalid OTP. Check the code and try again.` |
 | The fetched OTP is entered | Login succeeds, and the welcome message includes the username. |
 
-Example prompt used to brainstorm test cases:
-
-> Suggest positive, negative, and edge cases for OTP login. First provide the preconditions, test data, and expected result. Do not assume the wording of error messages; identify assumptions that need to be verified in the application.
+Use the [test case generation prompt](prompts/test-case-generation.md) to brainstorm positive, negative, and boundary cases. It asks AI to identify assumptions and avoid guessing application messages.
 
 AI suggestions were not treated as ground truth: expected behavior was checked in the application, and the tests were run in Chromium. The incorrect OTP is created by first fetching the valid, dynamic OTP and then changing its last digit; the valid OTP is neither hardcoded nor printed to the log.
 
@@ -132,6 +111,8 @@ AI supported the implementation by helping to:
 - reading the OTP text from the popup and filling the six separate OTP fields
 - organizing the generated interactions into the existing Page Object Model
 
+Use the [Playwright generation prompt](prompts/playwright-generation.md) to implement reviewed scenarios. It includes this project's requirements for the existing page object, dynamic OTP handling, and Playwright synchronization.
+
 ### 3. Page Object Model (POM)
 
 Page locators and actions are managed by the [OtpLoginPage](tests/pages/otp-login.page.ts) class. The test itself, [login-otp.spec.ts](tests/login-otp.spec.ts), describes the scenario and checks that login succeeds.
@@ -149,37 +130,7 @@ npx playwright test tests/login-otp.spec.ts --project=chromium --workers=1 --tra
 npx playwright show-report
 ```
 
-In the report, open the failed test and inspect its error, steps, and trace. Share the relevant failure output, trace observations, and test code with AI. Traces can contain page content and test data; review and redact them before sharing. The OTP is dynamic and should not be copied into prompts.
-
-### Bug analysis prompt
-
-```text
-Analyze this Playwright test failure. Do not assume that a failing test proves
-there is an application bug.
-
-Test and expected behavior:
-[Paste the relevant test and expected result.]
-
-Observed failure:
-[Paste the error and actual result from the Playwright report.]
-
-Trace observations:
-[Describe the relevant UI state and actions from the trace. Include only
-redacted screenshots or details that are necessary.]
-
-Return:
-1. Verified facts, each tied to the supplied evidence.
-2. Plausible causes, labeled as hypotheses rather than facts.
-3. Whether the evidence points to an application defect, a test defect,
-   an environment issue, or is insufficient to decide.
-4. The smallest steps to reproduce and the next checks that would distinguish
-   the hypotheses.
-5. A concise bug report only if an application defect is supported by evidence;
-   otherwise, state what evidence is still needed.
-
-Do not invent application behavior, error messages, or root causes. Do not
-recommend changing the test's expected result just to make it pass.
-```
+In the report, open the failed test and inspect its error, steps, and trace. Share only relevant failure output, trace observations, and test code with AI. Traces can contain page content and test data; review and redact them before sharing. The OTP is dynamic and should not be copied into prompts. Use the [bug analysis prompt](prompts/bug-analysis.md) to distinguish evidence from hypotheses and avoid treating a test failure as proof of an application defect.
 
 For example, if the “rejects an incorrect OTP” test fails, first compare the submitted code and visible login message in the report and trace with the expected message in `tests/login-otp.spec.ts`. Do not conclude that OTP validation is broken until the trace confirms the application received the derived incorrect code and the observed result contradicts the verified expected behavior.
 
@@ -197,27 +148,27 @@ Review `tests/login-otp.spec.ts` and `tests/pages/otp-login.page.ts` for:
 
 Ask AI to report findings before making changes. Apply only relevant, approved changes; do not change verified application behavior or refactor unrelated code. Run the affected Playwright tests after refactoring and inspect the diff.
 
-### Review and refactoring prompt
-
-```text
-Review the Playwright OTP tests and page object for correctness, reliability,
-readability, and consistency with the existing project patterns.
-
-First report findings with file and line references. Label each as a bug,
-risk, or optional improvement. Do not change expected application behavior
-or refactor unrelated code.
-
-Wait for approval before changing code. After approval, make only the
-necessary changes, run the relevant Playwright tests, and summarize the
-changes and test results. Do not include or log the OTP or other sensitive
-test data.
-```
+Use the [review and refactoring prompt](prompts/review-and-refactoring.md) to collect findings before making changes, then verify approved refactoring by running the affected tests.
 
 ## Files
 
 - `playwright.config.ts` – Playwright browsers, test directory, and `data-testid` configuration.
 - `tests/login-otp.spec.ts` – typed OTP scenarios, data transformations, and validation tests.
 - `tests/pages/otp-login.page.ts` – POM class containing OTP page locators and actions.
+- `prompts/requirement-analysis.md` – prompt for clarifying and structuring requirements.
+- `prompts/test-case-generation.md` – prompt for generating test scenarios from reviewed requirements.
+- `prompts/playwright-generation.md` – prompt for implementing reviewed scenarios with Playwright.
+- `prompts/bug-analysis.md` – prompt for evidence-based analysis of a failing test.
+- `prompts/review-and-refactoring.md` – prompt for reviewing and safely refactoring tests.
+
+
+## Lessons Learned
+
+• AI can generate useful test cases but requires human review.
+• AI-generated Playwright code should be refactored before production use.
+• Business requirements have a significant impact on AI-generated test quality.
+• Prompt quality directly affects test quality.
+
 
 ## Author
 
