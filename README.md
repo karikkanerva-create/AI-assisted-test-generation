@@ -42,7 +42,7 @@ Open the HTML report after a test run:
 npx playwright show-report
 ```
 
-## Prompt Engineering for QA
+## 1. Prompt Engineering for QA
 
 Prompt engineering supports every stage below rather than being a one-time step.
 This project uses a two-step prompt workflow so test intent is reviewed before implementation:
@@ -84,7 +84,7 @@ The current tests use this reviewed plan:
 
 The current behavior and messages were observed in the practice application and verified by running the tests. Environment-specific assumptions, such as `URL_OTP_LOGIN` pointing to the intended practice page, should still be checked when running the suite in a different environment.
 
-## AI Test Case Generation
+## 2. AI Test Case Generation
 
 In addition to successful login, the test suite covers negative and boundary cases. Expected messages and UI behavior were checked against the application before being added to the tests:
 
@@ -101,15 +101,15 @@ Example prompt used to brainstorm test cases:
 
 AI suggestions were not treated as ground truth: expected behavior was checked in the application, and the tests were run in Chromium. The incorrect OTP is created by first fetching the valid, dynamic OTP and then changing its last digit; the valid OTP is neither hardcoded nor printed to the log.
 
-## AI Test Data Generation
+## 3. AI Test Data Generation
 
 The scenarios in `tests/login-otp.spec.ts` are stored as typed test data and run as independent Playwright tests. Discriminated unions describe the supported case types: an empty-username validation and OTP submissions using a valid, incorrect, or incomplete code. The incomplete case also specifies how many digits to enter.
 
 The OTP is fetched from the popup at runtime for every submission scenario. Test data derives the input from that value: it uses the fetched code unchanged for a successful login, changes the last digit for an incorrect code, or takes the configured number of leading digits for an incomplete code. This keeps the valid OTP dynamic while making the negative cases repeatable.
 
-The username is a stable practice-test value; no real user data or generated credentials are used. AI helped structure the scenario data, and the generated cases were reviewed and verified by running the tests.
+The username is a stable practice-test value; no real user data or generated credentials are used.
 
-## AI Playwright Test Generation
+## 4. AI Playwright Test Generation
 
 ### 1. Codegen recording
 
@@ -121,18 +121,16 @@ npx playwright codegen --target=playwright-test --test-id-attribute=data-testid 
 
 Codegen opens a browser and the code generator. Perform the login steps in the browser, and Playwright suggests corresponding locators and actions. The `--test-id-attribute=data-testid` option tells Codegen to use the page's `data-testid` attributes.
 
-Codegen output is a starting point, not a finished test. The recorded code was reviewed and organized to fit the project's needs.
+Codegen output is a starting point, not a finished test, and should not be treated as ready to use without adaptation to the project.
 
-### 2. AI-assisted review and improvement
+### 2. AI-assisted implementation
 
-AI was used to support test development:
+AI supported the implementation by helping to:
 
 - explaining error messages and how Playwright locators work
 - accounting for the cookie banner and navigating to the OTP section
 - reading the OTP text from the popup and filling the six separate OTP fields
-- refactoring the Codegen draft into the Page Object Model
-
-AI suggestions were verified by running the tests. The final test does not print the OTP to the log.
+- organizing the generated interactions into the existing Page Object Model
 
 ### 3. Page Object Model (POM)
 
@@ -140,7 +138,7 @@ Page locators and actions are managed by the [OtpLoginPage](tests/pages/otp-logi
 
 `OtpLoginPage.fetchOtp()` waits for the popup to open and retrieves the six-digit code. `enterOtp()` fills the page's six fields one digit at a time. This keeps UI details in the page object and lets the test focus on verifying the login flow.
 
-## AI Bug Analysis
+## 5. AI Bug Analysis
 
 AI can help investigate a failing test, but a test failure is evidence of unexpected behavior, not proof of an application bug. Use the Playwright result and trace to identify what happened, then verify the proposed cause in the application.
 
@@ -184,6 +182,36 @@ recommend changing the test's expected result just to make it pass.
 ```
 
 For example, if the “rejects an incorrect OTP” test fails, first compare the submitted code and visible login message in the report and trace with the expected message in `tests/login-otp.spec.ts`. Do not conclude that OTP validation is broken until the trace confirms the application received the derived incorrect code and the observed result contradicts the verified expected behavior.
+
+## 6. AI Review and Refactoring
+
+This final stage reviews the generated tests and page object for quality after test generation. It is separate from AI Bug Analysis: bug analysis investigates a specific failure, while this review checks the test code even when the suite passes.
+
+Review `tests/login-otp.spec.ts` and `tests/pages/otp-login.page.ts` for:
+
+- correct test intent, expected results, and coverage of the agreed scenarios
+- reliable Playwright locators, auto-waiting, and assertions; avoid fixed delays
+- duplicated interactions or locators that belong in the page object
+- clear test data and maintainable, narrowly scoped code
+- accidental exposure of OTPs or other sensitive values in output or logs
+
+Ask AI to report findings before making changes. Apply only relevant, approved changes; do not change verified application behavior or refactor unrelated code. Run the affected Playwright tests after refactoring and inspect the diff.
+
+### Review and refactoring prompt
+
+```text
+Review the Playwright OTP tests and page object for correctness, reliability,
+readability, and consistency with the existing project patterns.
+
+First report findings with file and line references. Label each as a bug,
+risk, or optional improvement. Do not change expected application behavior
+or refactor unrelated code.
+
+Wait for approval before changing code. After approval, make only the
+necessary changes, run the relevant Playwright tests, and summarize the
+changes and test results. Do not include or log the OTP or other sensitive
+test data.
+```
 
 ## Files
 
