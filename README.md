@@ -164,10 +164,10 @@ Use the [review and refactoring prompt](prompts/review-and-refactoring.md) to co
 
 ## Lessons Learned
 
-• AI can generate useful test cases but requires human review.
-• AI-generated Playwright code should be refactored before production use.
-• Business requirements have a significant impact on AI-generated test quality.
-• Prompt quality directly affects test quality.
+• AI can generate useful test cases but requires human review.<br>
+• AI-generated Playwright code should be refactored before production use.<br>
+• Business requirements have a significant impact on AI-generated test quality.<br>
+• Prompt quality directly affects test quality.<br>
 
 
 ## Author
